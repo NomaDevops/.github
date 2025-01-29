@@ -15,7 +15,7 @@ on:
         description: 'Flag to set if your chart has dependency'
         required: false
         default: false
-        type: bool
+        type: boolean
     secrets:
       MICROK8S_CONFIG:
       additional_set:
