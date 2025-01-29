@@ -1,4 +1,4 @@
-name: Deploy on MicroK8S using Helm
+name: MicroK8S deployment
 
 on:
   workflow_call:
@@ -11,42 +11,76 @@ on:
         description: 'Name of the release'
         required: true
         type: string
+      additional_set:
+        description: 'Additional set on one line (Optional)'
+        required: false
+        type: string
+      has_dependency:
+        description: 'Flag to set if your chart has dependency'
+        required: false
+        default: false
+        type: bool
     secrets:
       MICROK8S_CONFIG:
 
 jobs:
-  Lint:
-      name: Linter
-      runs-on: arc-runner-set
-      steps:
-        - uses: actions/checkout@v4
-        - name: Install helm binary
-          run: |
-              sudo apt update -y && sudo apt install -y curl
-              curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          shell: bash
-        - name: Running Linter
-          run: helm lint
-          shell: bash
-    
-  Deployment:
-    name: Deploy on microk8s cluster
+  Install-Helm:
+    name: Install Helm
     runs-on: arc-runner-set
-    needs: Lint
+    outputs:
+      helm-path: ${{ steps.helm-install.outputs.helm-path }}
+    steps:
+      - name: Install Helm
+        id: helm-install
+        run: |
+          sudo apt update -y && sudo apt install -y curl
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          echo "::set-output name=helm-path::$(which helm)"
+        shell: bash
+
+  Lint:
+    name: Linter
+    runs-on: arc-runner-set
+    needs: Install-Helm
     steps:
       - uses: actions/checkout@v4
-      - name: Install helm binary
+      - name: Use Helm Binary from Install-Helm
         run: |
-            sudo apt update -y && sudo apt install -y curl
-            curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          ${{ needs.Install-Helm.outputs.helm-path }} version
         shell: bash
-      
-      - name: Connect to cluster
+      - name: Running Linter with Helm from Install-Helm
+        run: |
+          ${{ needs.Install-Helm.outputs.helm-path }} lint .
+        shell: bash
+
+  Deployment:
+    name: Deploy on MicroK8S Cluster
+    runs-on: arc-runner-set
+    needs: [Install-Helm, Lint]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Helm Binary from Install-Helm
+        run: |
+          ${{ needs.Install-Helm.outputs.helm-path }} version
+        shell: bash
+      - name: Set Kubernetes Context
         uses: azure/k8s-set-context@v4
         with:
-           method: kubeconfig
-           kubeconfig: ${{secrets.MICROK8S_CONFIG}}
+          method: kubeconfig
+          kubeconfig: ${{ secrets.MICROK8S_CONFIG }}
       
-      - name: Install Chart
+      # Conditionally update dependencies if flag is true
+      - name: Helm Dependency Update
+        if: ${{ inputs.has_dependency == true }}
         run: |
-          helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
+          ${{ needs.Install-Helm.outputs.helm-path }} dependency update
+        shell: bash
+      
+      - name: Install Chart (Basic)
+        run: |
+          ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
+      
+      - name: Install Chart with Additional Values
+        if: ${{ inputs.additional_set }}
+        run: |
+          ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ inputs.additional_set }} --create-namespace .
