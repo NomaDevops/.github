@@ -91,16 +91,11 @@ jobs:
         run: ./helm dependency update
         shell: bash
 
-      - name: Install Chart (Basic)
-        run: |
-          ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
-        shell: bash
-
-      - name: Install Chart with Additional Values
+      - name: Install Chart 
         run: |
           if [ -n "${{ secrets.additional_set }}" ]; then
             ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace .
           else
-            echo "Skipping additional set values as they are empty."
-          fi
+            ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
+          fi  
         shell: bash
