@@ -11,10 +11,6 @@ on:
         description: 'Name of the release'
         required: true
         type: string
-      additional_set:
-        description: 'Additional set on one line (Optional)'
-        required: false
-        type: string
       has_dependency:
         description: 'Flag to set if your chart has dependency'
         required: false
@@ -22,6 +18,7 @@ on:
         type: bool
     secrets:
       MICROK8S_CONFIG:
+      additional_set:
 
 jobs:
   Install-Helm:
@@ -81,6 +78,6 @@ jobs:
           ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
       
       - name: Install Chart with Additional Values
-        if: ${{ inputs.additional_set }}
+        if: ${{ secrets.additional_set }}
         run: |
-          ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ inputs.additional_set }} --create-namespace .
+          ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace .
