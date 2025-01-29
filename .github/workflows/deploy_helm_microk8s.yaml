@@ -38,10 +38,6 @@ jobs:
     needs: Install-Helm
     steps:
       - uses: actions/checkout@v4
-      - name: Use Helm Binary
-        run: |
-          ${{ env.HELM_PATH }} version
-        shell: bash
       - name: Running Linter with Helm
         run: |
           ${{ env.HELM_PATH }} lint .
