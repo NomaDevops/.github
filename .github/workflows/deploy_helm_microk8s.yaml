@@ -78,6 +78,6 @@ jobs:
           ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
       
       - name: Install Chart with Additional Values
-        if: ${{ secrets.additional_set }}
+        if: ${{ secrets.additional_set != '' }}
         run: |
           ${{ needs.Install-Helm.outputs.helm-path }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace .
