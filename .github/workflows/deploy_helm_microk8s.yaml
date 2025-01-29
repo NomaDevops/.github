@@ -29,8 +29,20 @@ jobs:
         run: |
           sudo apt update -y && sudo apt install -y curl
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          echo "HELM_PATH=$(which helm)" >> "$GITHUB_ENV"
         shell: bash
+
+      - name: Find Helm Binary & Package It
+        run: |
+          HELM_BINARY=$(which helm)
+          cp $HELM_BINARY ./helm
+          chmod +x ./helm
+        shell: bash
+
+      - name: Upload Helm Binary as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-binary
+          path: ./helm
 
   Lint:
     name: Linter
@@ -38,9 +50,18 @@ jobs:
     needs: Install-Helm
     steps:
       - uses: actions/checkout@v4
-      - name: Running Linter with Helm
-        run: |
-          ${{ env.HELM_PATH }} lint .
+
+      - name: Download Helm Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-binary
+
+      - name: Make Helm Executable
+        run: chmod +x ./helm
+        shell: bash
+      
+      - name: Running Linter
+        run: ./helm lint .
         shell: bash
 
   Deployment:
@@ -49,32 +70,36 @@ jobs:
     needs: [Install-Helm, Lint]
     steps:
       - uses: actions/checkout@v4
-      - name: Use Helm Binary
-        run: |
-          ${{ env.HELM_PATH }} version
+
+      - name: Download Helm Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-binary
+
+      - name: Make Helm Executable
+        run: chmod +x ./helm
         shell: bash
+
       - name: Set Kubernetes Context
         uses: azure/k8s-set-context@v4
         with:
           method: kubeconfig
           kubeconfig: ${{ secrets.MICROK8S_CONFIG }}
       
-      # Conditionally update dependencies if flag is true
       - name: Helm Dependency Update
         if: ${{ inputs.has_dependency }}
-        run: |
-          ${{ env.HELM_PATH }} dependency update
+        run: ./helm dependency update
         shell: bash
-      
+
       - name: Install Chart (Basic)
         run: |
-          ${{ env.HELM_PATH }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
+          ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace .
         shell: bash
-      
+
       - name: Install Chart with Additional Values
         run: |
           if [ -n "${{ secrets.additional_set }}" ]; then
-            ${{ env.HELM_PATH }} upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace .
+            ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace .
           else
             echo "Skipping additional set values as they are empty."
           fi
