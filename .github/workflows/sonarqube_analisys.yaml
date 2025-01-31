@@ -1,0 +1,20 @@
+name: Sonarqube Analisys
+
+on:
+  workflow_call:
+    inputs:
+      sonarqube_url:
+        description: "URL of SonarQube instance"
+        default: sonar.nomadevops.co
+        type: string
+    secrets:
+      SONAR_TOKEN:
+jobs:
+  sonarqube-analysis:
+    runs-on: arc-runner-set
+    steps:
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ inputs.sonarqube_url }}
