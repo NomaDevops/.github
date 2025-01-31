@@ -17,6 +17,11 @@ on:
       registry_pwd:
 
 jobs:
+  - name: Download Docker Artifact
+    uses: actions/download-artifact@v4
+    with:
+      name: docker-artifact
+      
   - name: Login to Docker Hub
     uses: docker/login-action@v2
     with:
