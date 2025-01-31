@@ -17,27 +17,39 @@ on:
       registry_pwd:
 
 jobs:
-  - name: Download Docker Artifact
-    uses: actions/download-artifact@v4
-    with:
-      name: docker-artifact
-      
-  - name: Login to Docker Hub
-    uses: docker/login-action@v2
-    with:
-      registry: ${{ inputs.registry_url }}
-      username: ${{ secrets.registry_user }}
-      password: ${{ secrets.registry_pwd }}
+  download:
+    runs-on: arc-runner-set
+    steps:
+      - name: Download Docker Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-artifact
 
-  - name: Set up QEMU
-    uses: docker/setup-qemu-action@v3
-  
-  - name: Set up Docker Buildx
-    uses: docker/setup-buildx-action@v3
-  
-  - name: Build and push
-    uses: docker/build-push-action@v6
-    with:
-        context: .
-        push: true
-        tags: ${{ inputs.registry_url }}/${{ github.event.repository.name }}:${{ inputs.semantic_version }}
+  login:
+    runs-on: arc-runner-set
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ inputs.registry_url }}
+          username: ${{ secrets.registry_user }}
+          password: ${{ secrets.registry_pwd }}
+
+  setup:
+    runs-on: arc-runner-set
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+  build_and_push:
+    runs-on: arc-runner-set
+    steps:
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ inputs.registry_url }}/${{ github.event.repository.name }}:${{ inputs.semantic_version }}
