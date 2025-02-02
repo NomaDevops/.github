@@ -61,6 +61,7 @@ jobs:
         shell: bash
       
       - name: Running Linter
+        working_directory: ./helm
         run: ./helm lint .
         shell: bash
 
@@ -88,10 +89,12 @@ jobs:
       
       - name: Helm Dependency Update
         if: ${{ inputs.has_dependency }}
+        working_directory: ./helm
         run: ./helm dependency update
         shell: bash
 
       - name: Install Chart 
+        working_directory: ./helm
         run: |
           if [ -n "${{ secrets.additional_set }}" ]; then
             ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace .
