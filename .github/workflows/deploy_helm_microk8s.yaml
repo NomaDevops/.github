@@ -47,7 +47,6 @@ jobs:
   Lint:
     name: Linter
     runs-on: arc-runner-set
-    working_directory: ./helm
     needs: Install-Helm
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +68,6 @@ jobs:
     name: Deploy on MicroK8S Cluster
     runs-on: arc-runner-set
     needs: [Install-Helm, Lint]
-    working_directory: ./helm
     steps:
       - uses: actions/checkout@v4
 
