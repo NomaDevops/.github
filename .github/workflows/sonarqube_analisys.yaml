@@ -5,7 +5,7 @@ on:
     inputs:
       sonarqube_url:
         description: "URL of SonarQube instance"
-        default: sonar.nomadevops.co
+        default: https://sonar.nomadevops.co
         type: string
     secrets:
       SONAR_TOKEN:
