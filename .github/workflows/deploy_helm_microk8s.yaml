@@ -25,29 +25,21 @@ jobs:
     name: Install Helm
     runs-on: arc-runner-set
     steps:
-      #- name: Install Helm
-      #  run: |
-      #    sudo apt update -y && sudo apt install -y curl
-      #    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      #  shell: bash
-      
       - name: Cache Helm Binary
         uses: actions/cache@v3
         with:
-          path: /usr/local/bin/helm
-          key: helm-${{ runner.os }}-${{ hashFiles('**/helm') }}
-      
+          path: ~/.local/bin/helm  # Change to a non-root directory
+          key: helm-${{ runner.os }}
+    
       - name: Install Helm (if not cached)
         run: |
-          if [ ! -f "/usr/local/bin/helm" ]; then
+          mkdir -p ~/.local/bin
+          if [ ! -f "~/.local/bin/helm" ]; then
             curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+            mv /usr/local/bin/helm ~/.local/bin/helm
           fi
-
-      #- name: Upload Helm Binary as Artifact
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: helm-binary
-      #    path: ./helm
+          chmod +x ~/.local/bin/helm
+          echo "$HOME/.local/bin" >> $GITHUB_PATH  # Add to PATH
 
   Lint:
     name: Linter
@@ -55,21 +47,22 @@ jobs:
     needs: Install-Helm
     steps:
       - uses: actions/checkout@v4
-
       - name: Restore Cached Helm
         uses: actions/cache@v3
         with:
-          path: /usr/local/bin/helm
-          key: helm-${{ runner.os }}-${{ hashFiles('**/helm') }}
+          path: ~/.local/bin/helm
+          key: helm-${{ runner.os }}
 
-      #- name: Download Helm Binary
-      #  uses: actions/download-artifact@v4
-      #  with:
-      #    name: helm-binary
-#
-      #- name: Make Helm Executable
-      #  run: chmod +x ./helm
-      #  shell: bash
+      - name: Verify Helm Installation
+        run: |
+          if ! command -v helm &> /dev/null; then
+            echo "Helm not found, installing..."
+            curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+            mv /usr/local/bin/helm ~/.local/bin/helm
+          fi
+          chmod +x ~/.local/bin/helm
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          helm version
       
       - name: Running Linter
         run: helm lint helm_chart/
@@ -84,17 +77,19 @@ jobs:
       - name: Restore Cached Helm
         uses: actions/cache@v3
         with:
-          path: /usr/local/bin/helm
-          key: helm-${{ runner.os }}-${{ hashFiles('**/helm') }}
+          path: ~/.local/bin/helm
+          key: helm-${{ runner.os }}
 
-      #- name: Download Helm Binary
-      #  uses: actions/download-artifact@v4
-      #  with:
-      #    name: helm-binary
-#
-      #- name: Make Helm Executable
-      #  run: chmod +x ./helm
-      #  shell: bash
+      - name: Verify Helm Installation
+        run: |
+          if ! command -v helm &> /dev/null; then
+            echo "Helm not found, installing..."
+            curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+            mv /usr/local/bin/helm ~/.local/bin/helm
+          fi
+          chmod +x ~/.local/bin/helm
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          helm version
 
       - name: Set Kubernetes Context
         uses: azure/k8s-set-context@v4
