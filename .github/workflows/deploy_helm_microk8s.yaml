@@ -25,24 +25,29 @@ jobs:
     name: Install Helm
     runs-on: arc-runner-set
     steps:
-      - name: Install Helm
-        run: |
-          sudo apt update -y && sudo apt install -y curl
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-        shell: bash
-
-      - name: Find Helm Binary & Package It
-        run: |
-          HELM_BINARY=$(which helm)
-          cp $HELM_BINARY ./helm
-          chmod +x ./helm
-        shell: bash
-
-      - name: Upload Helm Binary as Artifact
-        uses: actions/upload-artifact@v4
+      #- name: Install Helm
+      #  run: |
+      #    sudo apt update -y && sudo apt install -y curl
+      #    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      #  shell: bash
+      
+      - name: Cache Helm Binary
+        uses: actions/cache@v3
         with:
-          name: helm-binary
-          path: ./helm
+          path: /usr/local/bin/helm
+          key: helm-${{ runner.os }}-${{ hashFiles('**/helm') }}
+      
+      - name: Install Helm (if not cached)
+        run: |
+          if [ ! -f "/usr/local/bin/helm" ]; then
+            curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          fi
+
+      #- name: Upload Helm Binary as Artifact
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: helm-binary
+      #    path: ./helm
 
   Lint:
     name: Linter
@@ -51,17 +56,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Helm Binary
-        uses: actions/download-artifact@v4
+      - name: Restore Cached Helm
+        uses: actions/cache@v3
         with:
-          name: helm-binary
+          path: /usr/local/bin/helm
+          key: helm-${{ runner.os }}-${{ hashFiles('**/helm') }}
 
-      - name: Make Helm Executable
-        run: chmod +x ./helm
-        shell: bash
+      #- name: Download Helm Binary
+      #  uses: actions/download-artifact@v4
+      #  with:
+      #    name: helm-binary
+#
+      #- name: Make Helm Executable
+      #  run: chmod +x ./helm
+      #  shell: bash
       
       - name: Running Linter
-        run: ./helm lint helm_chart/
+        run: helm lint helm_chart/
         shell: bash
 
   Deployment:
@@ -70,15 +81,20 @@ jobs:
     needs: [Install-Helm, Lint]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download Helm Binary
-        uses: actions/download-artifact@v4
+      - name: Restore Cached Helm
+        uses: actions/cache@v3
         with:
-          name: helm-binary
+          path: /usr/local/bin/helm
+          key: helm-${{ runner.os }}-${{ hashFiles('**/helm') }}
 
-      - name: Make Helm Executable
-        run: chmod +x ./helm
-        shell: bash
+      #- name: Download Helm Binary
+      #  uses: actions/download-artifact@v4
+      #  with:
+      #    name: helm-binary
+#
+      #- name: Make Helm Executable
+      #  run: chmod +x ./helm
+      #  shell: bash
 
       - name: Set Kubernetes Context
         uses: azure/k8s-set-context@v4
@@ -88,14 +104,14 @@ jobs:
       
       - name: Helm Dependency Update
         if: ${{ inputs.has_dependency }}
-        run: ./helm dependency update helm_chart/
+        run: helm dependency update helm_chart/
         shell: bash
 
       - name: Install Chart 
         run: |
           if [ -n "${{ secrets.additional_set }}" ]; then
-            ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace helm_chart/
+            helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --set ${{ secrets.additional_set }} --create-namespace helm_chart/
           else
-            ./helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace helm_chart/
+            helm upgrade --install ${{ inputs.helm_release }} -n ${{ inputs.kubernetes_namespace }} --create-namespace helm_chart/
           fi  
         shell: bash
