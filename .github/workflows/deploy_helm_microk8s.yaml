@@ -36,7 +36,7 @@ jobs:
           mkdir -p ~/.local/bin
           if [ ! -f "~/.local/bin/helm" ]; then
             curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-            mv /usr/local/bin/helm ~/.local/bin/helm
+            cp /usr/local/bin/helm ~/.local/bin/helm
           fi
           chmod +x ~/.local/bin/helm
           echo "$HOME/.local/bin" >> $GITHUB_PATH  # Add to PATH
@@ -58,7 +58,7 @@ jobs:
           if ! command -v helm &> /dev/null; then
             echo "Helm not found, installing..."
             curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-            mv /usr/local/bin/helm ~/.local/bin/helm
+            cp /usr/local/bin/helm ~/.local/bin/helm
           fi
           chmod +x ~/.local/bin/helm
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -85,7 +85,7 @@ jobs:
           if ! command -v helm &> /dev/null; then
             echo "Helm not found, installing..."
             curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-            mv /usr/local/bin/helm ~/.local/bin/helm
+            cp /usr/local/bin/helm ~/.local/bin/helm
           fi
           chmod +x ~/.local/bin/helm
           echo "$HOME/.local/bin" >> $GITHUB_PATH
